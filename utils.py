@@ -1,19 +1,25 @@
 import matplotlib.pyplot as plt
+from numpy import block
 import pandas as pd
 import seaborn as sns
 
 
-def plot_learning_curve(rewards_over_seeds: list[list[int]]):
+def plot_learning_curve(rewards_over_seeds: dict, title: str):
     """Plots the learning curve based on the rewards over seeds.
 
     Args:
-        rewards_over_seeds: List of rewards for each seed
+        rewards_over_seeds: Dictionary where keys are algorithm names and values are lists of rewards for each seed
+        title: The title of the plot
     """
-    rewards_to_plot = [[reward[0] for reward in rewards] for rewards in rewards_over_seeds] # type: ignore
-    df1 = pd.DataFrame(rewards_to_plot).melt()
-    df1.rename(columns={"variable": "episodes", "value": "reward"}, inplace=True)
     sns.set(style="darkgrid", context="talk", palette="rainbow")
-    sns.lineplot(x="episodes", y="reward", data=df1).set(
-        title="REINFORCE for InvertedPendulum-v4"
-    )
-    plt.show()
+    for algo_name, rewards in rewards_over_seeds.items():
+        rewards_to_plot = [[reward[0] for reward in rewards] for rewards in rewards]
+        df = pd.DataFrame(rewards_to_plot).melt()
+        df.rename(columns={"variable": "episodes", "value": "reward"}, inplace=True)
+        sns.lineplot(x="episodes", y="reward", data=df, label=algo_name).set(
+            title=title
+        )
+
+    plt.legend()
+    plt.show(block=False)
+    plt.pause(10)  # plot will be displayed for 10 seconds
