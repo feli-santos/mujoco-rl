@@ -1,5 +1,5 @@
 from utils import plot_learning_curve
-from train import REINFORCE, DQNAgent, train_dqn, train_reinforce
+from train import train_dqn, train_reinforce
 
 
 if __name__ == "__main__":

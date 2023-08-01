@@ -6,8 +6,6 @@ import torch
 from environment import create_env
 from agent import REINFORCE, DQNAgent
 
-from typing import Type
-
 
 def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     """Trains the policy using REINFORCE algorithm with different random seeds.
