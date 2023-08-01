@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class PolicyNetwork(nn.Module):
     """Parametrized Policy Network."""
 
@@ -14,8 +15,8 @@ class PolicyNetwork(nn.Module):
         """
         super().__init__()
 
-        hidden_space1 = 16  # Nothing special with 16, feel free to change
-        hidden_space2 = 32  # Nothing special with 32, feel free to change
+        hidden_space1 = 16
+        hidden_space2 = 32
 
         # Shared Network
         self.shared_net = nn.Sequential(
@@ -54,3 +55,21 @@ class PolicyNetwork(nn.Module):
         )
 
         return action_means, action_stddevs
+
+
+class DQNNetwork(nn.Module):
+    """Network for the DQN agent."""
+
+    def __init__(self, obs_space_dims: int, action_space_dims: int):
+        super().__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(obs_space_dims, 64),
+            nn.ReLU(),
+            nn.Linear(64, 128),
+            nn.ReLU(),
+            nn.Linear(128, action_space_dims),
+        )
+
+    def forward(self, state: torch.Tensor) -> torch.Tensor:
+        return self.network(state.float())
