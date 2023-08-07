@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.distributions.normal import Normal
 
-from network import PolicyNetwork, DQNNetwork
+from network import PolicyNetwork, DQNNetwork, PPONetwork
 
 
 class REINFORCE:
@@ -148,3 +148,139 @@ class DQNAgent:
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.q_network.state_dict())
+
+
+class PPOAgent:
+    """Agent that learns to solve the environment using PPO."""
+
+    def __init__(
+        self,
+        obs_space_dims: int,
+        action_space_dims: int,
+        lr: float = 0.0003,
+        clip_epsilon: float = 0.2,
+        update_epochs: int = 10,
+        gamma: float = 0.99,
+        lam: float = 0.95,
+    ):
+        """
+        Initialize a PPOAgent with given observation and action dimensions.
+
+        :param obs_space_dims: Dimensions of the observation space.
+        :param action_space_dims: Dimensions of the action space.
+        :param lr: Learning rate for the optimizer (default is 0.0003).
+        :param clip_epsilon: Epsilon value for the clipping in the objective function (default is 0.2).
+        :param update_epochs: Number of epochs for the update step (default is 10).
+        """
+        self.obs_space_dims = obs_space_dims
+        self.action_space_dims = action_space_dims
+
+        self.policy_net = PPONetwork(
+            obs_space_dims, action_space_dims
+        )  # Neural network for the policy
+
+        self.optimizer = torch.optim.Adam(
+            self.policy_net.parameters(), lr=lr
+        )  # Optimizer
+
+        self.clip_epsilon = clip_epsilon  # Epsilon value for clipping
+        self.trajectory = []  # To store the trajectory of the episode
+        self.update_epochs = update_epochs  # Number of epochs for the update step
+
+        self.gamma = gamma  # Discount factor for rewards
+        self.lam = lam  # GAE smoothing factor
+
+    def choose_action(self, state: np.ndarray) -> float:
+        """
+        Choose an action based on the current state using the policy network.
+
+        :param state: Current state.
+        :return: Sampled action.
+        """
+        with torch.no_grad():
+            state = torch.tensor(np.array([state]))  # type: ignore
+
+            # Using forward_policy
+            mean, std = self.policy_net.forward_policy(state)  # type: ignore
+            dist = Normal(mean, std)  # Create a normal distribution
+            action = dist.sample()  # Sample an action from the distribution
+            action = action.squeeze(-1)  # Remove the extra dimension
+        return action.numpy()
+
+    def store_transition(
+        self, state, action, reward, next_state, done, advantage, old_log_prob
+    ):
+        """
+        Store a transition in the trajectory.
+
+        :param state: Current state.
+        :param action: Action taken.
+        :param reward: Reward received.
+        :param next_state: Next state.
+        :param done: Whether the episode is done.
+        :param advantage: Advantage of the action.
+        :param old_log_prob: Old log probability of the action.
+        """
+        self.trajectory.append(
+            (state, action, reward, next_state, done, advantage, old_log_prob)
+        )
+
+    def update(self):
+        """
+        Update the policy network using the stored trajectory.
+        """
+        # Unpack the trajectory
+        state_arr, action_arr, reward_arr, _, _, advantage_arr, old_log_prob_arr = map(
+            lambda x: torch.tensor(x, dtype=torch.float32), zip(*self.trajectory)
+        )
+        for _ in range(self.update_epochs):  # Update over several epochs
+            mean, std = self.policy_net.forward_policy(state_arr)
+            dist = Normal(mean, std)  # Create a normal distribution
+            log_prob = dist.log_prob(action_arr)
+            ratio = torch.exp(log_prob - old_log_prob_arr)
+            surr1 = ratio * advantage_arr
+            surr2 = (
+                torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
+                * advantage_arr
+            )
+            loss = -torch.min(surr1, surr2).mean()  # PPO loss
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+        self.trajectory = []  # Clear the trajectory for the next episode
+
+    def compute_advantage_and_log_prob(
+        self, states, actions, rewards, next_states, dones
+    ):
+        states = torch.tensor(states, dtype=torch.float32)  # Convert states to tensors
+        next_states = torch.tensor(
+            next_states, dtype=torch.float32
+        )  # Convert next_states to tensors
+        actions = torch.tensor(
+            actions, dtype=torch.float32
+        )  # Convert actions to tensors
+
+        with torch.no_grad():
+            values = self.policy_net.forward_value(states)  # Using forward_value
+            next_values = self.policy_net.forward_value(
+                next_states
+            )  # Using forward_value
+
+            # Compute TD errors
+            td_errors = rewards + self.gamma * next_values * (1 - dones) - values
+
+            # Compute advantage using GAE
+            advantages = []
+            advantage = 0
+            for td_error in reversed(td_errors):
+                advantage = td_error + self.gamma * self.lam * advantage
+                advantages.insert(0, advantage)
+            advantages = torch.tensor(advantages)
+
+            # Compute old log probabilities using the policy
+            means, stds = self.policy_net.forward_policy(states)
+            dist = Normal(means, stds)
+            old_log_probs = dist.log_prob(actions)
+
+        return advantages, old_log_probs
