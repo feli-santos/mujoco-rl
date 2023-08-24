@@ -1,4 +1,5 @@
 from typing import Tuple
+
 import torch
 import torch.nn as nn
 
@@ -6,7 +7,7 @@ import torch.nn as nn
 class PolicyNetwork(nn.Module):
     """Parametrized Policy Network."""
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, config: dict):
         """Initializes a neural network that estimates the mean and standard deviation
          of a normal distribution from which an action is sampled from.
 
@@ -16,8 +17,8 @@ class PolicyNetwork(nn.Module):
         """
         super().__init__()
 
-        hidden_space1 = 16
-        hidden_space2 = 32
+        # Get hidden layer sizes from config
+        hidden_space1, hidden_space2 = config.get("hidden_layers", (32, 64))
 
         # Shared Network
         self.shared_net = nn.Sequential(
@@ -70,16 +71,19 @@ class DQNNetwork(nn.Module):
         action_space_dims (int): The number of possible actions that the agent can take.
     """
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, config: dict):
         super().__init__()
+
+        # Get hidden layer sizes from config
+        hidden_space1, hidden_space2 = config.get("hidden_layers", (32, 64))
 
         # Define the network
         self.network = nn.Sequential(
-            nn.Linear(obs_space_dims, 64),
+            nn.Linear(obs_space_dims, hidden_space1),
             nn.ReLU(),
-            nn.Linear(64, 128),
+            nn.Linear(hidden_space1, hidden_space2),
             nn.ReLU(),
-            nn.Linear(128, action_space_dims),
+            nn.Linear(hidden_space2, action_space_dims),
         )
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
@@ -95,7 +99,7 @@ class DQNNetwork(nn.Module):
 
 
 class PPONetwork(nn.Module):
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, config: dict):
         """
         Proximal Policy Optimization Network class.
 
@@ -105,20 +109,23 @@ class PPONetwork(nn.Module):
         """
         super().__init__()
 
+        # Get hidden layer sizes from config
+        hidden_space1, hidden_space2 = config.get("hidden_layers", (32, 64))
+
         # Shared layers for both policy and value heads
         self.shared_layers = nn.Sequential(
-            nn.Linear(obs_space_dims, 64),  # Linear layer with 64 units
+            nn.Linear(obs_space_dims, hidden_space1),  # Linear layer with 64 units
             nn.ReLU(),  # ReLU activation function
-            nn.Linear(64, 32),  # Linear layer with 32 units
+            nn.Linear(hidden_space1, hidden_space2),  # Linear layer with 32 units
             nn.ReLU(),  # ReLU activation function
         )
 
         # Policy heads for mean and standard deviation
-        self.mean_head = nn.Linear(32, action_space_dims)
-        self.std_head = nn.Linear(32, action_space_dims)
+        self.mean_head = nn.Linear(hidden_space2, action_space_dims)
+        self.std_head = nn.Linear(hidden_space2, action_space_dims)
 
         # Value head for state value estimation
-        self.value_head = nn.Linear(32, 1)
+        self.value_head = nn.Linear(hidden_space2, 1)
 
     def forward_policy(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
