@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from numpy import block
+import json
 import pandas as pd
 import seaborn as sns
 
@@ -23,3 +23,17 @@ def plot_learning_curve(rewards_over_seeds: dict, title: str):
     plt.legend()
     plt.show(block=False)
     plt.pause(10)  # plot will be displayed for 10 seconds
+
+
+def read_config(json_file_path: str):
+    """Reads the config file.
+
+    Args:
+        json_file_path: The path to the config file
+
+    Returns:
+        The config file as a dictionary
+    """
+    with open(json_file_path, "r") as file:
+        config = json.load(file)
+    return config
