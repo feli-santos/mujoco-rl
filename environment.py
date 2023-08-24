@@ -7,7 +7,7 @@ def create_env():
     Returns:
         env: Wrapped environment
     """
-    env = gym.make("InvertedPendulum-v4")
+    env = gym.make("InvertedPendulum-v4", render_mode="human")
 
     # Records episode-reward
     wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # type: ignore
