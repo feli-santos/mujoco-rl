@@ -1,4 +1,8 @@
 import json
+import os
+from datetime import datetime
+from turtle import st
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -38,3 +42,37 @@ def read_config(json_file_path: str):
     with open(json_file_path, "r") as file:
         config = json.load(file)
     return config
+
+
+def create_results_folder():
+    """Creates a folder to store the results of the experiment.
+
+    Returns:
+        The name of the folder
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_name = f"experiment_results/{timestamp}"
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    return folder_name
+
+
+def save_experiment_results(
+    results: dict, config: dict, folder_name: Optional[str] = None
+):
+    # Create folder if it doesn't exist
+    if folder_name is None or not os.path.exists(folder_name):
+        folder_name = create_results_folder()
+
+    # Create a human-readable timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # Merge config and results
+    experiment_data = {
+        "config": config,
+        "results": results,
+    }
+
+    # Create JSON file to save the data
+    with open(f"{folder_name}/experiment_{timestamp}.json", "w") as f:
+        json.dump(experiment_data, f, indent=4)
