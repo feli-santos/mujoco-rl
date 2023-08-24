@@ -6,16 +6,12 @@ import torch
 from torch.distributions.normal import Normal
 
 from network import DQNNetwork, PolicyNetwork, PPONetwork
-from utils import read_config
-
-# Read the global config file
-config = read_config("config.json")
 
 
 class REINFORCE:
     """REINFORCE algorithm."""
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, config: dict):
         """Initializes an agent that learns a policy via REINFORCE algorithm
         to solve the task at hand (Inverted Pendulum v4).
 
@@ -32,9 +28,7 @@ class REINFORCE:
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
 
-        self.net = PolicyNetwork(
-            obs_space_dims, action_space_dims, config.get("REINFORCE", {})
-        )
+        self.net = PolicyNetwork(obs_space_dims, action_space_dims, config)
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
 
     def choose_action(self, state: np.ndarray) -> float:
@@ -91,7 +85,7 @@ class REINFORCE:
 class DQNAgent:
     """Agent that learns to solve the environment using DQN."""
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, config: dict):
         self.memory = deque(maxlen=config.get("memory_size", 10000))  # memory buffer
         self.gamma = config.get("gamma", 0.99)  # discount factor
         self.epsilon = config.get("epsilon", 1.0)  # exploration rate
@@ -105,12 +99,8 @@ class DQNAgent:
 
         # networks
         self.action_space_dims = action_space_dims
-        self.q_network = DQNNetwork(
-            obs_space_dims, action_space_dims, config.get("DQN", {})
-        )
-        self.target_network = DQNNetwork(
-            obs_space_dims, action_space_dims, config.get("DQN", {})
-        )
+        self.q_network = DQNNetwork(obs_space_dims, action_space_dims, config)
+        self.target_network = DQNNetwork(obs_space_dims, action_space_dims, config)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
         self.optimizer = torch.optim.Adam(
@@ -172,6 +162,7 @@ class PPOAgent:
         self,
         obs_space_dims: int,
         action_space_dims: int,
+        config: dict,
     ):
         """
         Initialize a PPOAgent with given observation and action dimensions.
@@ -186,7 +177,7 @@ class PPOAgent:
         self.action_space_dims = action_space_dims  # Action space dimensions
 
         self.policy_net = PPONetwork(
-            obs_space_dims, action_space_dims, config.get("PPO", {})
+            obs_space_dims, action_space_dims, config
         )  # Neural network for the policy
 
         self.optimizer = torch.optim.Adam(

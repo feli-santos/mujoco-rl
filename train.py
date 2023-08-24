@@ -8,7 +8,9 @@ from agent import REINFORCE, DQNAgent, PPOAgent
 from environment import create_env
 
 
-def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
+def train_reinforce(
+    num_episodes: int, random_seeds: list[int], config: dict
+) -> list[list[int]]:
     """Trains the policy using REINFORCE algorithm with different random seeds.
 
     Args:
@@ -30,7 +32,9 @@ def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int
         wrapped_env, obs_space_dims, action_space_dims = create_env()
 
         # Reinitialize agent for each seed
-        agent = REINFORCE(obs_space_dims, action_space_dims)
+        agent = REINFORCE(
+            obs_space_dims, action_space_dims, config.get("REINFORCE", {})
+        )
         reward_over_episodes = []
 
         for episode in tqdm(range(num_episodes)):
@@ -65,7 +69,9 @@ def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int
     return rewards_over_seeds
 
 
-def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
+def train_dqn(
+    num_episodes: int, random_seeds: list[int], config: dict
+) -> list[list[int]]:
     """Trains the DQN agent with different random seeds.
 
     Args:
@@ -87,7 +93,7 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
         wrapped_env, obs_space_dims, action_space_dims = create_env()
 
         # Reinitialize agent for each seed
-        agent = DQNAgent(obs_space_dims, action_space_dims)
+        agent = DQNAgent(obs_space_dims, action_space_dims, config.get("DQN", {}))
         reward_over_episodes = []
 
         for episode in tqdm(range(num_episodes)):
@@ -125,7 +131,9 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     return rewards_over_seeds
 
 
-def train_ppo(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
+def train_ppo(
+    num_episodes: int, random_seeds: list[int], config: dict
+) -> list[list[int]]:
     """Trains the PPO agent with different random seeds.
 
     Args:
@@ -150,7 +158,7 @@ def train_ppo(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
         wrapped_env, obs_space_dims, action_space_dims = create_env()
 
         # Initialize the PPO agent with the observation and action dimensions
-        agent = PPOAgent(obs_space_dims, action_space_dims)
+        agent = PPOAgent(obs_space_dims, action_space_dims, config.get("PPO", {}))
 
         # List to store rewards for each episode in this random seed
         reward_over_episodes = []
