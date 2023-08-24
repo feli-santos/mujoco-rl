@@ -124,28 +124,33 @@ class DQNAgent:
         if len(self.memory) < self.batch_size:
             return
 
+        # Initialization
         minibatch = random.sample(self.memory, self.batch_size)
 
-        for state, action, reward, next_state, done in minibatch:
-            state = torch.tensor(np.array([state]))  # type: ignore
-            next_state = torch.tensor(np.array([next_state]))  # type: ignore
-            target = reward
-            if not done:
-                target = (
-                    reward
-                    + self.gamma * torch.max(self.target_network(next_state)).item()
-                )
+        # Initialize tensors from minibatch
+        states, actions, rewards, next_states, dones = zip(*minibatch)
 
-            current = self.q_network(state)[action]
+        states = torch.tensor(np.array(states), dtype=torch.float32)
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
+        rewards = torch.tensor(rewards, dtype=torch.float32)
+        dones = torch.tensor(dones, dtype=torch.float32)
+        actions = torch.tensor(actions, dtype=torch.int64).view(-1, 1)  # Make it 2D
 
-            target = torch.tensor(
-                target, dtype=torch.float32
-            )  # convert target to tensor
-            loss = torch.nn.functional.mse_loss(current, target)
+        # Compute target
+        targets = rewards + self.gamma * torch.max(
+            self.target_network(next_states), dim=1
+        )[0] * (1 - dones)
 
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        # Use Q-network to get the current q-values
+        current_q_values = self.q_network(states).gather(1, actions).squeeze(1)
+
+        # Compute loss
+        loss = torch.nn.functional.mse_loss(current_q_values, targets)
+
+        # Optimize
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
         # Decay epsilon
         if self.epsilon > self.epsilon_min:
