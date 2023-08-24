@@ -5,6 +5,7 @@ from turtle import st
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -60,6 +61,13 @@ def create_results_folder():
 def save_experiment_results(
     results: dict, config: dict, folder_name: Optional[str] = None
 ):
+    """Saves the results of the experiment in a JSON file.
+
+    Args:
+        results: The results of the experiment
+        config: The config used for the experiment
+        folder_name: The name of the folder to store the results
+    """
     # Create folder if it doesn't exist
     if folder_name is None or not os.path.exists(folder_name):
         folder_name = create_results_folder()
@@ -75,4 +83,20 @@ def save_experiment_results(
 
     # Create JSON file to save the data
     with open(f"{folder_name}/experiment_{timestamp}.json", "w") as f:
-        json.dump(experiment_data, f, indent=4)
+        json.dump(experiment_data, f, default=default_serialize, indent=4)
+
+
+def default_serialize(obj):
+    """Default JSON serializer.
+
+    Args:
+        obj: Object to serialize
+
+    Returns:
+        The serialized object
+    """
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(
+        f"Object of type '{obj.__class__.__name__}' is not JSON serializable"
+    )
