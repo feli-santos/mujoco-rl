@@ -1,10 +1,18 @@
 {
     "REINFORCE": {
+        "hidden_layers": [
+            16,
+            32
+        ],
         "learning_rate": 0.0001,
         "gamma": 0.99,
         "eps": 0.000001
     },
     "DQN": {
+        "hidden_layers": [
+            16,
+            32
+        ],
         "memory_size": 10000,
         "gamma": 0.99,
         "epsilon": 1.0,
@@ -12,10 +20,14 @@
         "epsilon_decay": 0.995,
         "batch_size": 64,
         "update_freq": 1000,
-        "lr": 0.001
+        "learning_rate": 0.001
     },
     "PPO": {
-        "lr": 0.0003,
+        "hidden_layers": [
+            16,
+            32
+        ],
+        "learning_rate": 0.0003,
         "clip_epsilon": 0.2,
         "update_epochs": 10,
         "gamma": 0.99,
