@@ -1,10 +1,11 @@
-import numpy as np
-from tqdm import tqdm
 import random
-import torch
 
-from environment import create_env
+import numpy as np
+import torch
+from tqdm import tqdm
+
 from agent import REINFORCE, DQNAgent, PPOAgent
+from environment import create_env
 
 
 def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:

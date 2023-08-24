@@ -1,6 +1,5 @@
-from utils import plot_learning_curve
-from train import train_dqn, train_reinforce, train_ppo
-
+from train import train_dqn, train_ppo, train_reinforce
+from utils import plot_learning_curve, read_config
 
 if __name__ == "__main__":
     num_episodes = 1000
