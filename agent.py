@@ -5,7 +5,11 @@ import numpy as np
 import torch
 from torch.distributions.normal import Normal
 
-from network import PolicyNetwork, DQNNetwork, PPONetwork
+from network import DQNNetwork, PolicyNetwork, PPONetwork
+from utils import read_config
+
+# Read the global config file
+config = read_config("config.json")
 
 
 class REINFORCE:
@@ -20,15 +24,17 @@ class REINFORCE:
             action_space_dims: Dimension of the action space
         """
 
-        # Hyperparameters
-        self.learning_rate = 1e-4  # Learning rate for policy optimization
-        self.gamma = 0.99  # Discount factor
-        self.eps = 1e-6  # small number for mathematical stability
+        # config
+        self.learning_rate = config.get("learning_rate", 1e-4)  # Learning rate
+        self.gamma = config.get("gamma", 0.99)  # Discount factor
+        self.eps = config.get("eps", 1e-6)  # Epsilon value for the normal distribution
 
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
 
-        self.net = PolicyNetwork(obs_space_dims, action_space_dims)
+        self.net = PolicyNetwork(
+            obs_space_dims, action_space_dims, config.get("REINFORCE", {})
+        )
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
 
     def choose_action(self, state: np.ndarray) -> float:
@@ -86,21 +92,30 @@ class DQNAgent:
     """Agent that learns to solve the environment using DQN."""
 
     def __init__(self, obs_space_dims: int, action_space_dims: int):
-        self.memory = deque(maxlen=10000)  # experience replay
-        self.gamma = 0.99  # discount factor
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01  # minimal exploration rate
-        self.epsilon_decay = 0.995  # exploration decay
-        self.batch_size = 64  # batch size for the experience replay
-        self.update_freq = 1000  # frequency of updating the target network
+        self.memory = deque(maxlen=config.get("memory_size", 10000))  # memory buffer
+        self.gamma = config.get("gamma", 0.99)  # discount factor
+        self.epsilon = config.get("epsilon", 1.0)  # exploration rate
+        self.epsilon_min = config.get("epsilon_min", 0.01)  # minimum exploration rate
+        self.epsilon_decay = config.get(
+            "epsilon_decay", 0.995
+        )  # decay rate for exploration rate
+        self.batch_size = config.get("batch_size", 64)  # batch size
+        self.update_freq = config.get("update_freq", 1000)  # update frequency
+        self.learning_rate = config.get("learning_rate", 0.001)  # learning rate
 
         # networks
         self.action_space_dims = action_space_dims
-        self.q_network = DQNNetwork(obs_space_dims, action_space_dims)
-        self.target_network = DQNNetwork(obs_space_dims, action_space_dims)
+        self.q_network = DQNNetwork(
+            obs_space_dims, action_space_dims, config.get("DQN", {})
+        )
+        self.target_network = DQNNetwork(
+            obs_space_dims, action_space_dims, config.get("DQN", {})
+        )
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.001)
+        self.optimizer = torch.optim.Adam(
+            self.q_network.parameters(), lr=self.learning_rate
+        )
 
     def store_transition(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -157,11 +172,6 @@ class PPOAgent:
         self,
         obs_space_dims: int,
         action_space_dims: int,
-        lr: float = 0.0003,
-        clip_epsilon: float = 0.2,
-        update_epochs: int = 10,
-        gamma: float = 0.99,
-        lam: float = 0.95,
     ):
         """
         Initialize a PPOAgent with given observation and action dimensions.
@@ -172,23 +182,24 @@ class PPOAgent:
         :param clip_epsilon: Epsilon value for the clipping in the objective function (default is 0.2).
         :param update_epochs: Number of epochs for the update step (default is 10).
         """
-        self.obs_space_dims = obs_space_dims
-        self.action_space_dims = action_space_dims
+        self.obs_space_dims = obs_space_dims  # Observation space dimensions
+        self.action_space_dims = action_space_dims  # Action space dimensions
 
         self.policy_net = PPONetwork(
-            obs_space_dims, action_space_dims
+            obs_space_dims, action_space_dims, config.get("PPO", {})
         )  # Neural network for the policy
 
         self.optimizer = torch.optim.Adam(
-            self.policy_net.parameters(), lr=lr
+            self.policy_net.parameters(), lr=config.get("learning_rate", 0.0003)
         )  # Optimizer
 
-        self.clip_epsilon = clip_epsilon  # Epsilon value for clipping
-        self.trajectory = []  # To store the trajectory of the episode
-        self.update_epochs = update_epochs  # Number of epochs for the update step
-
-        self.gamma = gamma  # Discount factor for rewards
-        self.lam = lam  # GAE smoothing factor
+        self.clip_epsilon = config.get("clip_epsilon", 0.2)  # Epsilon for clipping
+        self.trajectory = []  # Trajectory for the current episode
+        self.update_epochs = config.get(
+            "update_epochs", 10
+        )  # Number of epochs for the update step
+        self.gamma = config.get("gamma", 0.99)  # Discount factor
+        self.lam = config.get("lam", 0.95)  # Lambda for GAE
 
     def choose_action(self, state: np.ndarray) -> float:
         """
