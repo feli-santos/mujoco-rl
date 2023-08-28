@@ -4,6 +4,7 @@ from collections import deque
 import numpy as np
 import torch
 from torch.distributions.normal import Normal
+import matplotlib.pyplot as plt
 
 from network import PolicyNetwork, DQNNetwork
 
@@ -86,13 +87,14 @@ class DQNAgent:
     """Agent that learns to solve the environment using DQN."""
 
     def __init__(self, obs_space_dims: int, action_space_dims: int):
-        self.memory = deque(maxlen=10000)  # experience replay
+        self.memory = deque(maxlen=1000)  # experience replay
         self.gamma = 0.99  # discount factor
         self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01  # minimal exploration rate
-        self.epsilon_decay = 0.995  # exploration decay
-        self.batch_size = 64  # batch size for the experience replay
-        self.update_freq = 1000  # frequency of updating the target network
+        self.epsilon_min = 0.05  # minimal exploration rate
+        self.epsilon_decay = 1 - 1/1000  # exploration decay
+        self.batch_size = 4  # batch size for the experience replay
+        self.update_freq = 100  # frequency of updating the target network
+        self.tau = 0.005 # update rate of the target network
 
         # networks
         self.action_space_dims = action_space_dims
@@ -100,15 +102,15 @@ class DQNAgent:
         self.target_network = DQNNetwork(obs_space_dims, action_space_dims)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.001)
+        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.1)
 
     def store_transition(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def choose_action(self, state):
-        # Exploration - exploitation trade-off
         if np.random.rand() <= self.epsilon:
-            return np.array([random.randrange(self.action_space_dims)])
+            return np.array([random.uniform(-3, 3)])
+            #return np.array([random.gauss(0,1)])
         else:
             state = torch.tensor(np.array([state]))  # type: ignore
             q_values = self.q_network(state).detach().numpy()
@@ -121,7 +123,7 @@ class DQNAgent:
 
         minibatch = random.sample(self.memory, self.batch_size)
 
-        for state, action, reward, next_state, done in minibatch:
+        for state, _, reward, next_state, done in minibatch:
             state = torch.tensor(np.array([state]))  # type: ignore
             next_state = torch.tensor(np.array([next_state]))  # type: ignore
             target = reward
@@ -131,13 +133,13 @@ class DQNAgent:
                     + self.gamma * torch.max(self.target_network(next_state)).item()
                 )
 
-            current = self.q_network(state)[action]
-
+            current = self.q_network(state)
             target = torch.tensor(
-                target, dtype=torch.float32
+                [[target]], dtype=torch.float32
             )  # convert target to tensor
             loss = torch.nn.functional.mse_loss(current, target)
 
+         
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -147,4 +149,10 @@ class DQNAgent:
             self.epsilon *= self.epsilon_decay
 
     def update_target_network(self):
-        self.target_network.load_state_dict(self.q_network.state_dict())
+        #self.target_network.load_state_dict(self.q_network.state_dict()
+        
+        target_net_state_dict = self.target_network.state_dict()
+        q_net_state_dict = self.q_network.state_dict()
+        for key in q_net_state_dict:
+            target_net_state_dict[key] = q_net_state_dict[key]*self.tau + target_net_state_dict[key]*(1-self.tau)
+        self.target_network.load_state_dict(target_net_state_dict)
