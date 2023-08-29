@@ -4,10 +4,9 @@ import pickle
 from tqdm import tqdm
 import random
 import torch
-import matplotlib.pyplot as plt
 
 from environment import create_env
-from utils import plot_durations
+from utils import plot_durations, plot_weight_update
 from agent import REINFORCE, DQNAgent
 from visual import render_agent
 from itertools import count
@@ -106,18 +105,24 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
         for episode in tqdm(range(num_episodes)):
             obs, _ = wrapped_env.reset(seed=seed)
             done = False
-            
+            actions = []
             #Teste
-            old_params = [param.clone().detach() for param in agent.q_network.parameters()]
+            old_params = agent.q_network.get_network_weights()
             for t in count():
+                
                 action = agent.choose_action(obs)
+                actions.append(action)
                 next_obs, reward, terminated, truncated, _ = wrapped_env.step(action)  # type: ignore
-
+                
+            
                 # store transition and learn
                 agent.store_transition(
                     obs, action, reward, next_obs, terminated or truncated
                 )  # needs implementation - temos que nos preocupar com isso?
+                
                 agent.learn()
+                
+                new_params = agent.q_network.get_network_weights()
 
                 # End the episode when either truncated or terminated is true
                 done = terminated or truncated
@@ -128,8 +133,10 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
                     episode_durations.append(t + 1)
                     #plot_durations(episode_durations)
                     break
+            #print(actions)
+            #input('')
 
-            weight_updates = [new - old for new, old in zip(agent.q_network.parameters(), old_params)]
+            weight_updates = [new - old for new, old in zip(new_params, old_params)]
             average_weight_update = sum(torch.norm(update) for update in weight_updates) / len(weight_updates)
             
             # Armazenando a média das atualizações de peso
@@ -155,15 +162,7 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     if True:
         print('Complete')
         plot_durations(episode_durations, show_result=True)
-        plt.ioff()
-        plt.show()
-        plt.figure()
-        plt.plot(iterations, average_updates, label='Average Weight Update')
-        plt.xlabel('Iterations')
-        plt.ylabel('Average Update')
-        plt.title('Average Weight Update over Iterations')
-        plt.legend()
-        plt.show()
+        plot_weight_update(iterations, average_updates)
 
 
     return rewards_over_seeds

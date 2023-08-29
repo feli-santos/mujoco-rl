@@ -55,3 +55,14 @@ def plot_durations(episode_durations,show_result=False):
             display.clear_output(wait=True)
         else:
             display.display(plt.gcf())
+
+def plot_weight_update(iterations, average_updates):
+    plt.ioff()
+    plt.show()
+    plt.figure()
+    plt.plot(iterations, average_updates, label='Average Weight Update')
+    plt.xlabel('Iterations')
+    plt.ylabel('Average Update')
+    plt.title('Average Weight Update over Iterations')
+    plt.legend()
+    plt.show()

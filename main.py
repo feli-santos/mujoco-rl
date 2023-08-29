@@ -2,7 +2,7 @@ from utils import plot_learning_curve
 from train import train_dqn, train_reinforce
 
 if __name__ == "__main__":
-    num_episodes = 3000
+    num_episodes = 1000
     random_seeds = [1234]
 
     # Train agents

@@ -102,7 +102,7 @@ class DQNAgent:
         self.target_network = DQNNetwork(obs_space_dims, action_space_dims)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.1)
+        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.01)
 
     def store_transition(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
