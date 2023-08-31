@@ -71,7 +71,7 @@ class DQNNetwork(nn.Module):
             nn.Tanh(),
             nn.Linear(hidden_space1, hidden_space2),
             nn.Tanh(),
-            nn.Linear(hidden_space2, action_space_dims),
+            nn.Linear(hidden_space2, action_space_dims),#tenta com a softmax depois
         )
         
     def forward(self, state: torch.Tensor) -> torch.Tensor:
