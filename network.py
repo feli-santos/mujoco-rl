@@ -61,7 +61,7 @@ class DQNNetwork(nn.Module):
     """Network for the DQN agent."""
 
     def __init__(self, obs_space_dims: int, action_space_dims: int):
-        super().__init__()
+        super().__init__() #type:ignore
 
         hidden_space1 = 16
         hidden_space2 = 32

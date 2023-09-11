@@ -4,7 +4,6 @@ from collections import deque
 import numpy as np
 import torch
 from torch.distributions.normal import Normal
-import matplotlib.pyplot as plt
 
 from network import PolicyNetwork, DQNNetwork
 
@@ -87,7 +86,7 @@ class DQNAgent:
     """Agent that learns to solve the environment using DQN."""
 
     def __init__(self, obs_space_dims: int, action_space_dims: int):
-        self.memory = deque(maxlen=1000)  # experience replay
+        self.memory = deque(maxlen=1000)  # experience replay #type: ignore
         self.gamma = 0.99  # discount factor
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.05  # minimal exploration rate
@@ -102,12 +101,12 @@ class DQNAgent:
         self.target_network = DQNNetwork(obs_space_dims, action_space_dims)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.01)
+        self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=0.1)
 
-    def store_transition(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+    def store_transition(self, state: list[float], action: list[float], reward: float, next_state: list[float], done: bool):
+        self.memory.append((state, action, reward, next_state, done)) #type: ignore
 
-    def choose_action(self, state):
+    def choose_action(self, state: list[float]) -> list[float]:
         if np.random.rand() <= self.epsilon:
             return np.array([random.uniform(-3, 3)])
             #return np.array([random.gauss(0,1)])
@@ -118,12 +117,12 @@ class DQNAgent:
 
     def learn(self):
         # Make sure the replay buffer is at least batch size large
-        if len(self.memory) < self.batch_size:
+        if len(self.memory) < self.batch_size: #type:ignore
             return
 
-        minibatch = random.sample(self.memory, self.batch_size)
+        minibatch = random.sample(self.memory, self.batch_size) #type:ignore
 
-        for state, _, reward, next_state, done in minibatch:
+        for state, _, reward, next_state, done in minibatch: #type:ignore
             state = torch.tensor(np.array([state]))  # type: ignore
             next_state = torch.tensor(np.array([next_state]))  # type: ignore
             target = reward
@@ -141,7 +140,7 @@ class DQNAgent:
 
          
             self.optimizer.zero_grad()
-            loss.backward()
+            loss.backward() #type:ignore
             self.optimizer.step()
 
         # Decay epsilon

@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-def create_env(flag = True):
+def create_env(flag: bool = True) -> tuple[any, int, int]:
     """Creates and wraps the environment for training
 
     Returns:

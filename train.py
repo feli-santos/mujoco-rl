@@ -80,7 +80,7 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     """
     rewards_over_seeds = []
 
-    for seed in tqdm(random_seeds):
+    for seed in random_seeds:
         # set seed
         torch.manual_seed(seed)
         random.seed(seed)
