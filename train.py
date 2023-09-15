@@ -1,14 +1,11 @@
 import numpy as np
-import os
-import pickle
 from tqdm import tqdm
 import random
 import torch
 
 from environment import create_env
-from utils import plot_durations, plot_weight_update
+from utils import *
 from agent import REINFORCE, DQNAgent
-from visual import render_agent
 from itertools import count
 
 def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
@@ -87,21 +84,17 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
         np.random.seed(seed)
 
         # Create environment
-        wrapped_env, obs_space_dims, action_space_dims = create_env()
+        wrapped_env, obs_space_dims, _ = create_env()
+        
+        # Discretização do espaço
+        discrete_factor = 10
+        action_space = np.linspace(-3, 3, discrete_factor)
 
-        # Reinitialize agent for each seed
-#        if os.path.exists('agent_object.pkl'):
-#            agent = pickle.load(open('agent_object.pkl', 'rb'))
-#        else:
-#            agent = DQNAgent(obs_space_dims, action_space_dims)
-        agent = DQNAgent(obs_space_dims, action_space_dims)
-
+        agent = load_dqn_agent('dqn_agent.pkl', obs_space_dims, discrete_factor)
         reward_over_episodes = []
-        #teste
         average_updates = []
         iterations = []
         episode_durations = []
-        weights = []
         for episode in tqdm(range(num_episodes)):
             obs, _ = wrapped_env.reset(seed=seed)
             done = False
@@ -112,7 +105,7 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
                 
                 action = agent.choose_action(obs)
                 actions.append(action)
-                next_obs, reward, terminated, truncated, _ = wrapped_env.step(action)  # type: ignore
+                next_obs, reward, terminated, truncated, _ = wrapped_env.step([action_space[action]])
                 
             
                 # store transition and learn
@@ -122,8 +115,6 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
                 
                 agent.learn()
                 
-                new_params = agent.q_network.get_network_weights()
-
                 # End the episode when either truncated or terminated is true
                 done = terminated or truncated
 
@@ -133,14 +124,13 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
                     episode_durations.append(t + 1)
                     #plot_durations(episode_durations)
                     break
-            #print(actions)
-            #input('')
-
+            
+            new_params = agent.q_network.get_network_weights()	
             weight_updates = [new - old for new, old in zip(new_params, old_params)]
             average_weight_update = sum(torch.norm(update) for update in weight_updates) / len(weight_updates)
             
             # Armazenando a média das atualizações de peso
-            average_updates.append(average_weight_update.item())
+            average_updates.append(average_weight_update)
             iterations.append(episode)
 
             reward_over_episodes.append(wrapped_env.return_queue[-1])
@@ -152,14 +142,12 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
 
             # Print average reward every 100 episodes
             if episode % 100 == 0:
-                avg_reward = int(np.mean(wrapped_env.return_queue))  # type: ignore
+                avg_reward = int(np.mean(wrapped_env.return_queue))  	
                 print("Episode:", episode, "Average Reward:", avg_reward)
 
         rewards_over_seeds.append(reward_over_episodes)
-
-    #with open("agent_object.pkl", "wb") as f:
-    #    pickle.dump(agent, f)  
-    if True:
+        
+        save_dqn_agent(agent)	
         print('Complete')
         plot_durations(episode_durations, show_result=True)
         plot_weight_update(iterations, average_updates)

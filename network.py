@@ -71,11 +71,11 @@ class DQNNetwork(nn.Module):
             nn.Tanh(),
             nn.Linear(hidden_space1, hidden_space2),
             nn.Tanh(),
-            nn.Linear(hidden_space2, action_space_dims),#tenta com a softmax depois
+            nn.Linear(hidden_space2, action_space_dims),
         )
         
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         return self.network(state.float())
 
-    def get_network_weights(self):
+    def get_network_weights(self) -> list[torch.Tensor]:
         return [param.data.clone().detach() for param in self.network.parameters()]
