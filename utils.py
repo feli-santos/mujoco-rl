@@ -1,4 +1,3 @@
-from numpy import block
 from agent import DQNAgent
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,14 +27,18 @@ def plot_learning_curve(rewards_over_seeds: dict, title: str) -> None:
     plt.show(block=False)
     plt.pause(10)  # plot will be displayed for 10 seconds
 
-def plot_durations(episode_durations: list[int], show_result: bool =False) -> None:
+def plot_durations(episode_durations: list[int]) -> None:
+    """Plota a duração de cada episódio e a média dos últimos 100 episódios
+
+    Parameters
+    ----------
+    episode_durations : list[int]
+        Duração de cada episódio
+    """
     plt.figure(1)
     durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    if show_result:
-        plt.title('Result')
-    else:
-        plt.clf()
-        plt.title('Training...')
+    plt.title('Result')
+
     plt.xlabel('Episode')
     plt.ylabel('Duration')
     plt.plot(durations_t.numpy())
@@ -53,13 +56,18 @@ def plot_durations(episode_durations: list[int], show_result: bool =False) -> No
 
     plt.ion()
     if is_ipython:
-        if not show_result:
-            display.display(plt.gcf()) #type: ignore
-            display.clear_output(wait=True) #type: ignore
-        else:
-            display.display(plt.gcf()) #type: ignore
+        display.display(plt.gcf()) #type: ignore
 
 def plot_weight_update(iterations: list[int], average_updates: list[int]) -> None:
+    """Plota a atualização média de pesos da rede
+
+    Parameters
+    ----------
+    iterations : list[int]
+        número de épocas
+    average_updates : list[int]
+        atualização média
+    """
     plt.ioff()
     plt.show()
     plt.figure()

@@ -92,65 +92,45 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
 
         agent = load_dqn_agent('dqn_agent.pkl', obs_space_dims, discrete_factor)
         reward_over_episodes = []
-        average_updates = []
-        iterations = []
-        episode_durations = []
         for episode in tqdm(range(num_episodes)):
             obs, _ = wrapped_env.reset(seed=seed)
             done = False
-            actions = []
-            #Teste
-            old_params = agent.q_network.get_network_weights()
             for t in count():
                 
                 action = agent.choose_action(obs)
-                actions.append(action)
                 next_obs, reward, terminated, truncated, _ = wrapped_env.step([action_space[action]])
                 
             
                 # store transition and learn
                 agent.store_transition(
                     obs, action, reward, next_obs, terminated or truncated
-                )  # needs implementation - temos que nos preocupar com isso?
+                )
                 
                 agent.learn()
-                
+
                 # End the episode when either truncated or terminated is true
                 done = terminated or truncated
 
                 # Update the observation
                 obs = next_obs
                 if done:
-                    episode_durations.append(t + 1)
-                    #plot_durations(episode_durations)
                     break
-            
-            new_params = agent.q_network.get_network_weights()	
-            weight_updates = [new - old for new, old in zip(new_params, old_params)]
-            average_weight_update = sum(torch.norm(update) for update in weight_updates) / len(weight_updates)
-            
-            # Armazenando a média das atualizações de peso
-            average_updates.append(average_weight_update)
-            iterations.append(episode)
 
             reward_over_episodes.append(wrapped_env.return_queue[-1])
 
             # update target network
             if episode % agent.update_freq == 0:
-            #    render_agent(agent= agent, env= wrapped_env)
                 agent.update_target_network()
 
             # Print average reward every 100 episodes
             if episode % 100 == 0:
                 avg_reward = int(np.mean(wrapped_env.return_queue))  	
-                print("Episode:", episode, "Average Reward:", avg_reward)
+                print("Seed:", random_seeds.index(seed) + 1,"Episode:", episode, "Average Reward:", avg_reward)
 
         rewards_over_seeds.append(reward_over_episodes)
         
-        save_dqn_agent(agent)	
-        print('Complete')
-        plot_durations(episode_durations, show_result=True)
-        plot_weight_update(iterations, average_updates)
+        #save_dqn_agent(agent)
+    print('Complete')
 
 
     return rewards_over_seeds

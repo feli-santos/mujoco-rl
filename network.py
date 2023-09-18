@@ -68,9 +68,9 @@ class DQNNetwork(nn.Module):
 
         self.network = nn.Sequential(
             nn.Linear(obs_space_dims, hidden_space1),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(hidden_space1, hidden_space2),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(hidden_space2, action_space_dims),
         )
         

@@ -89,7 +89,7 @@ class DQNAgent:
         self.memory = deque(maxlen=10000)  # experience replay #type: ignore
         self.gamma = 0.99  # discount factor
         self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.05  # minimal exploration rate
+        self.epsilon_min = 0.01  # minimal exploration rate
         self.epsilon_decay = 1 - 1/100  # exploration decay
         self.batch_size = 10  # batch size for the experience replay
         self.update_freq = 10  # frequency of updating the target network
@@ -97,6 +97,7 @@ class DQNAgent:
 
         # ? Seria interessante ter uma contagem das épocas treinadas para que o agente
         # ? decida zerar o epsilon mínimo?
+
         # networks
         self.action_space_dims = action_space_dims
         self.q_network = DQNNetwork(obs_space_dims, action_space_dims)
@@ -142,10 +143,8 @@ class DQNAgent:
         # Decay epsilon
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-    
-    def update_target_network(self):
-        #self.target_network.load_state_dict(self.q_network.state_dict())
         
+    def update_target_network(self):       
         target_net_state_dict = self.target_network.state_dict()
         q_net_state_dict = self.q_network.state_dict()
         for key in q_net_state_dict:
