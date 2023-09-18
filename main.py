@@ -1,7 +1,6 @@
 from utils import plot_learning_curve
 from train import train_dqn, train_reinforce
 
-
 if __name__ == "__main__":
     num_episodes = 1000
     random_seeds = [1234, 5678, 9012]
@@ -15,4 +14,4 @@ if __name__ == "__main__":
         "DQN": dqn_rewards,
     }
 
-plot_learning_curve(rewards_over_seeds, "REINFORCE vs DQN for InvertedPendulum-v4")  # type: ignore
+plot_learning_curve(rewards_over_seeds, "REINFORCE vs DQN for InvertedPendulum-v4") # type: ignore

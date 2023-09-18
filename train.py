@@ -4,8 +4,9 @@ import random
 import torch
 
 from environment import create_env
+from utils import *
 from agent import REINFORCE, DQNAgent
-
+from itertools import count
 
 def train_reinforce(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     """Trains the policy using REINFORCE algorithm with different random seeds.
@@ -76,30 +77,35 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
     """
     rewards_over_seeds = []
 
-    for seed in tqdm(random_seeds):
+    for seed in random_seeds:
         # set seed
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
 
         # Create environment
-        wrapped_env, obs_space_dims, action_space_dims = create_env()
+        wrapped_env, obs_space_dims, _ = create_env()
+        
+        # Discretização do espaço
+        discrete_factor = 10
+        action_space = np.linspace(-3, 3, discrete_factor)
 
-        # Reinitialize agent for each seed
-        agent = DQNAgent(obs_space_dims, action_space_dims)
+        agent = load_dqn_agent('dqn_agent.pkl', obs_space_dims, discrete_factor)
         reward_over_episodes = []
-
         for episode in tqdm(range(num_episodes)):
             obs, _ = wrapped_env.reset(seed=seed)
             done = False
-            while not done:
+            for t in count():
+                
                 action = agent.choose_action(obs)
-                next_obs, reward, terminated, truncated, _ = wrapped_env.step(action)  # type: ignore
-
+                next_obs, reward, terminated, truncated, _ = wrapped_env.step([action_space[action]])
+                
+            
                 # store transition and learn
                 agent.store_transition(
                     obs, action, reward, next_obs, terminated or truncated
-                )  # needs implementation
+                )
+                
                 agent.learn()
 
                 # End the episode when either truncated or terminated is true
@@ -107,6 +113,8 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
 
                 # Update the observation
                 obs = next_obs
+                if done:
+                    break
 
             reward_over_episodes.append(wrapped_env.return_queue[-1])
 
@@ -116,9 +124,13 @@ def train_dqn(num_episodes: int, random_seeds: list[int]) -> list[list[int]]:
 
             # Print average reward every 100 episodes
             if episode % 100 == 0:
-                avg_reward = int(np.mean(wrapped_env.return_queue))  # type: ignore
-                print("Episode:", episode, "Average Reward:", avg_reward)
+                avg_reward = int(np.mean(wrapped_env.return_queue))  	
+                print("Seed:", random_seeds.index(seed) + 1,"Episode:", episode, "Average Reward:", avg_reward)
 
         rewards_over_seeds.append(reward_over_episodes)
+        
+        #save_dqn_agent(agent)
+    print('Complete')
+
 
     return rewards_over_seeds
